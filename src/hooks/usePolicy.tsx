@@ -63,33 +63,25 @@ function generateQTable (map: ValuePossible[][]): QTable {
 				if (i > 0 && map[i - 1][j] >= 0) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
-						[(i - 1) + ':' + j]: {
-							recompensa: 0,
-						}
+						[(i - 1) + ':' + j]: 0,
 					};
 				}
 				if (i < map.length - 1 && map[i + 1][j] >= 0) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
-						[(i + 1) + ':' + j]: {
-							recompensa: 0,
-						}
+						[(i + 1) + ':' + j]: 0,
 					};
 				}
 				if (j > 0 && map[i][j - 1] >= 0) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
-						[i + ':' + (j - 1)]: {
-							recompensa: 0,
-						}
+						[i + ':' + (j - 1)]: 0,
 					};
 				}
 				if (j < row.length - 1 && map[i][j + 1] >= 0) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
-						[i + ':' + (j + 1)]: {
-							recompensa: 0,
-						}
+						[i + ':' + (j + 1)]: 0,
 					};
 				}
 			}

@@ -1,14 +1,18 @@
 import { ReactNode } from "react";
-import styled from "styled-components";
 import { Map } from "./components/map";
-import { Table } from "./components/table";
+import { QTable } from "./components/table";
 import { PolicyProvider } from "./hooks/usePolicy";
+import { GlobalStyle } from "./styles/GlobalStyle";
+import styled from "styled-components";
 
 const Div = styled.div`
+	position: relative;
 	display: flex;
 	flex-direction: row;
-	justify-content: space-between;
+	justify-content: center;
 	align-items: flex-start;
+	gap: 20px;
+	padding: 20px 0;
 `;
 
 function Row({children}: {children: ReactNode}) {
@@ -18,14 +22,13 @@ function Row({children}: {children: ReactNode}) {
 }
 
 export function App() {
-	return (
-		<div className="App">
-			<PolicyProvider>
-				<Row>
-					<Map />
-					<Table />
-				</Row>
-			</PolicyProvider>
-		</div>
-	);
+	return <div className="App">
+		<GlobalStyle />
+		<PolicyProvider>
+			<Row>
+				<Map />
+				<QTable />
+			</Row>
+		</PolicyProvider>
+	</div>
 }

@@ -2,12 +2,16 @@ import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { Unity } from './Unity';
 import { ValuePossible } from '../../types';
 import { Policy, PolicyContext } from '../../hooks/usePolicy';
-import { MapState } from '../../enums/MapState';
+import { Coord } from './ValuePossible';
 import styled from 'styled-components';
+
+const GAMA = 0.9;
 
 const Container = styled.div`
 	display: table;
 	margin: 0 2px 2px 0;
+	position: sticky;
+	top: 20px;
 `;
 
 const Row = styled.div`
@@ -68,42 +72,74 @@ export function Map() {
 
 function updateMap(policy: Policy, timelimit: number): ReturnType<typeof setTimeout> {
 	return setTimeout(() => {
-		const pos = policy.position.join(':');
-		const options = Object.keys(policy.qTable[pos]);
-		const option = options[Math.floor(Math.random() * options.length)].split(':').map(value => {
-			return Number(value);
+		const position = policy.position.join(':');
+		let action: Coord;
+
+		let bestAction: string = "";
+		Object.entries(policy.qTable[position]).map(([action, reward]) => {
+			if (bestAction.length === 0 && reward > 0) {
+				bestAction = action;
+			}
 		});
+
+		if (bestAction.length === 0) {
+			const actions = Object.keys(policy.qTable[position]);
+			action = actions[Math.floor(Math.random() * actions.length)].split(':').map(value => {
+			 	return Number(value);
+			}) as Coord;
+		} else {
+			action = bestAction.split(':').map(value => {
+				return Number(value);
+		   }) as Coord;
+		}
+
 	
 		if (policy.position.join(',') === policy.target.join(',')) {
 			policy.setPosition(policy.start);
 		}
 		else {
-			if (policy.map[option[0]][option[1]] > 0) {
-				const neighbors = Object.keys(policy.qTable[option[0] + ':' + option[1]]);
+			// if (policy.map[action[0]][action[1]] > 0) {
+			// 	const neighbors = Object.keys(policy.qTable[action[0] + ':' + action[1]]);
 				
-				neighbors.map((neighbor) => {
-					const posNeighbor = neighbor.split(':').map(value => {
-						return Number(value);
-					});
+			// 	neighbors.map((neighbor) => {
+			// 		const posNeighbor = neighbor.split(':').map(value => {
+			// 			return Number(value);
+			// 		});
 
-					policy.setMap((old) => {
-						if (
-							![MapState.block, MapState.border].includes(old[posNeighbor[0]][posNeighbor[1]]) &&
-							![MapState.block, MapState.border].includes(policy.map[option[0]][option[1]]) &&
-							old[posNeighbor[0]][posNeighbor[1]] < policy.map[option[0]][option[1]] * 0.9
-						) {
-							policy.map[posNeighbor[0]][posNeighbor[1]] = policy.map[option[0]][option[1]] * 0.9;
-						}
+			// 		policy.setMap((old) => {
+			// 			if (
+			// 				![MapState.block, MapState.border].includes(old[posNeighbor[0]][posNeighbor[1]]) &&
+			// 				![MapState.block, MapState.border].includes(policy.map[action[0]][action[1]]) &&
+			// 				old[posNeighbor[0]][posNeighbor[1]] < policy.map[action[0]][action[1]] * 0.9
+			// 			) {
+			// 				policy.map[posNeighbor[0]][posNeighbor[1]] = policy.map[action[0]][action[1]] * 0.9;
+			// 			}
 						
-						return policy.map;
-					});
+			// 			return policy.map;
+			// 		});
 
-					return null;
-				})
-			}
+			// 		return null;
+			// 	})
+			// }
+			updateQTable(policy, action);
 
-			policy.setPosition([option[0], option[1]]);
+			policy.setPosition(action);
 		}
 	
 	}, timelimit);
+}
+
+function updateQTable(policy: Policy, position: Coord) {
+	const neighbors = policy.qTable[position.join(':')];
+	
+	let maxValue = GAMA  * Math.max(...Object.values(neighbors));
+	if (policy.target.join(':') === position.join(':')) {
+		maxValue = 100;
+	}
+
+	policy.setQTable(old => {
+		old[policy.position.join(':')][position.join(':')] = maxValue;
+
+		return old;
+	});
 }

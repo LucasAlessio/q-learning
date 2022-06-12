@@ -1,48 +1,70 @@
 import React, { useContext } from "react"
 import { PolicyContext } from "../../hooks/usePolicy"
+import styled, { css } from "styled-components";
 
-export function Table() {
+const baseTdStyles = css`
+	text-align: center;
+	vertical-align: middle;
+	border: 1px solid #83827d;
+	padding: 5px 15px;
+`;
+
+const Table = styled.table`
+	border-collapse: collapse;
+`;
+
+const Th = styled.th`
+	text-align: center;
+	font-weight: 600;
+	${baseTdStyles}
+`;
+
+const Td = styled.td`
+	${baseTdStyles}
+`;
+
+export function QTable() {
 	const {qTable} = useContext(PolicyContext);
 
-	return <table border={1}>
+	return <Table>
 		<thead>
 			<tr>
-				<th colSpan={2}>Q()</th>
-				<th>Recompensa</th>
+				<Th colSpan={2}>Q()</Th>
+				<Th>Recompensa</Th>
 			</tr>
 		</thead>
 		<tbody>
-			{Object.entries(qTable).map(([posicao, acoes]: [posicao: string, acoes: Record<string, {recompensa: number}>], i) => {
+			{Object.entries(qTable).map(([posicao, acoes]: [posicao: string, acoes: Record<string, number>], i) => {
 				const neighbors = Object.keys(acoes);
 				const values = Object.values(acoes);
 
 				if (neighbors.length === 0) {
 					return <tr key={i}>
-						<td>{posicao}</td>
-						<td>&nbsp;</td>
-						<td>&nbsp;</td>
+						<Td>{posicao}</Td>
+						<Td>&nbsp;</Td>
+						<Td>&nbsp;</Td>
 					</tr>
 				}
 
 				return <React.Fragment key={i}>
 					<tr key={i + '_'}>
-						<td rowSpan={Object.keys(acoes).length}>{posicao}</td>
-						<td>{neighbors.length ? neighbors[0] : null}</td>
-						<td>{values.length ? values[0].recompensa : null}</td>
+						<Td rowSpan={Object.keys(acoes).length}>{posicao}</Td>
+						<Td>{neighbors.length ? neighbors[0] : null}</Td>
+						<Td>{values.length ? (values[0] / 1 === 0 ? values[0] : values[0].toFixed(4))  : null}</Td>
 					</tr>
 
-					{neighbors.length > 1 && Object.entries(acoes).map(([acao, recompensa]: [acao: string, recompensa: Record<'recompensa', number>], j) => {
+					{neighbors.length > 1 && Object.entries(acoes).map(([acao, recompensa]: [acao: string, recompensa: number], j) => {
 						if (j === 0) {
 							return null;
 						}
 
 						return <tr key={i + ':' + j}>
-							<td>{acao}</td>
-							<td>{recompensa.recompensa}</td>
+							<Td>{acao}</Td>
+							<Td>{recompensa % 1 === 0 ? recompensa : recompensa.toFixed(4)}</Td>
 						</tr>
 					})}
 				</React.Fragment>
 			})}
 		</tbody>
-	</table>
+	</Table>
 }
