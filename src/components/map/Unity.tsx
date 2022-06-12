@@ -1,5 +1,6 @@
 import styled, { css } from 'styled-components';
-import { Coord, isNumber, ValuePossible } from ".";
+import { MapState as MP } from '../../enums/MapState';
+import { Coord, ValuePossible } from '../../types';
 
 function hexToRgb(hex: string): Record<'r' | 'g' | 'b', number> {
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -21,7 +22,7 @@ const Div = styled.div`
 	border: 2px solid #a79259;
 	margin-right: -2px;
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => isNumber(dataType) && dataType > 0 && !dataActive && css`
+	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType > 0 && !dataActive && css`
 		background: rgba(
 			${hexToRgb("#59824b").r},
 			${hexToRgb("#59824b").g},
@@ -30,11 +31,11 @@ const Div = styled.div`
 		);
 	`}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === -100 && !dataActive && css`
+	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === MP.block && !dataActive && css`
 		background: #000;
 	`}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === 'xx' && !dataActive && css`
+	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === MP.border && !dataActive && css`
 		border-color: transparent;
 	`}
 
