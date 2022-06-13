@@ -4,6 +4,7 @@ import styled, { css } from "styled-components";
 
 const baseTdStyles = css`
 	text-align: center;
+	font-size: 1.4rem;
 	vertical-align: middle;
 	border: 1px solid #83827d;
 	padding: 5px 15px;

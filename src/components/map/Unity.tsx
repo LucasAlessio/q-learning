@@ -16,6 +16,8 @@ function hexToRgb(hex: string): Record<'r' | 'g' | 'b', number> {
 }
 
 const Div = styled.div`
+	line-height: 35px;
+	text-align: center;
 	display: block;
 	width: 35px;
 	height: 35px;
@@ -25,7 +27,7 @@ const Div = styled.div`
 		margin-left: -2px;
 	}
 
-	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType > 0 && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType > 1 && !dataActive && css`
 		background: rgba(
 			${hexToRgb("#59824b").r},
 			${hexToRgb("#59824b").g},
@@ -35,6 +37,7 @@ const Div = styled.div`
 	`}
 
 	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.block && !dataActive && css`
+		color: #fff;
 		background: #000;
 	`}
 
@@ -49,12 +52,14 @@ const Div = styled.div`
 
 export function Unity({values, row, target}: {values: Action[], row: number, target: Coord}) {
 	return <>
-		{values.map((value, j) => {
+		{values.map((value, column) => {
 			return <Div
 						dataType={value}
-						dataActive={[target].join(",") === [row, j].join(',')}
-						key={j}
-					/>
+						dataActive={[target].join(",") === [row, column].join(',')}
+						key={column}
+					>
+						{ /* value !== MP.border ? `${row}:${column}` : <></> */ }
+					</Div>
 		})}
 	</>
 }
