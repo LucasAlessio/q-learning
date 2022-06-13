@@ -50,7 +50,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [position, setPosition] = useState(start);
 	const [qTable, setQTable] = useState(generateQTable(map));
 	const [converged, setConverged] = useState(false);
-	const [choice, setChoice] = useState<Choice>('best');
+	const [choice, setChoice] = useState<Choice>('random');
 	const episodes = useRef(0);
 
 
