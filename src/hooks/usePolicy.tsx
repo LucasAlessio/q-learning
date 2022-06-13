@@ -201,6 +201,7 @@ function updateQTable(policy: Policy, target: Coord) {
 
 	if (checkConvergence(policy, target, value)) {
 		policy.setConverged(true);
+		policy.setChoice('best');
 	}
 	
 	policy.setMap(old => {

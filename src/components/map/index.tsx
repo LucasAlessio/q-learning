@@ -79,6 +79,7 @@ const MySwitch = styledSwitch((props: SwitchProps) => (
 		boxSizing: 'border-box',
 		width: 22,
 		height: 22,
+		boxShadow: 'none',
 	},
 	'& .MuiSwitch-track': {
 		borderRadius: 26 / 2,
@@ -102,12 +103,15 @@ export function Map() {
 
 	const policy = useContext(PolicyContext);
 	
-	const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+	const handleChangeLimit = (event: ChangeEvent<HTMLInputElement>) => {
+		if (!/^[0-9]+$/i.test(event.target.value)) {
+			setTimeLimit(0);
+		}
+
 		setTimeLimit(Number(event.target.value));
 	}
 
 	const handleChangeSwitch = (event: ChangeEvent<HTMLInputElement>) => {
-		//setTimeLimit(Number(event.target.value));
 		setCoordinates(event.target.checked);
 	}
 
@@ -125,7 +129,7 @@ export function Map() {
 		<div>
 			<Control 
 				timelimit={timelimit}
-				handleChange={handleChange}
+				handleChange={handleChangeLimit}
 				buttonActive={active}
 				setButtonActive={setActive}
 			/>
