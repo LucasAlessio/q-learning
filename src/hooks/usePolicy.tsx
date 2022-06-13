@@ -1,4 +1,4 @@
-import { createContext, Dispatch, MutableRefObject, ReactNode, SetStateAction, useContext, useRef, useState } from "react";
+import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useState } from "react";
 import { MapState as MP } from "../enums/MapState";
 import { Coord, QTable, Action, Choice } from "../types";
 
@@ -13,12 +13,12 @@ interface Policy {
 	setConverged: Dispatch<SetStateAction<boolean>>;
 	choice: Choice;
 	setChoice: Dispatch<SetStateAction<Choice>>,
+	episodes: number,
+	setEpisodes: Dispatch<SetStateAction<number>>,
 	start: [number, number],
 	target: [number, number],
 	gama: number,
-	episodes: MutableRefObject<number>,
-	moveAgent: (policy: Policy, timelimit: number) => ReturnType<typeof setTimeout>,
-	checkConvergence: (policy: Policy, nextAction: string) => boolean,
+	moveAgent: (policy: Policy, timelimit: number) => ReturnType<typeof setTimeout>
 }
 
 interface PolicyProviderProps {
@@ -28,16 +28,16 @@ interface PolicyProviderProps {
 const gama = 0.9;
 
 const initMap: Action[][] = [
-	[   MP.free,   MP.free,   MP.free,   MP.free, MP.block, MP.free,  MP.free, MP.free,   MP.free,   MP.free,   MP.free,  MP.block ],
-	[   MP.free,  MP.block,   MP.free,   MP.free,  MP.free, MP.free,  MP.free, MP.free,   MP.free,   MP.free,   MP.free,  MP.block ],
-	[  MP.block,   MP.free,  MP.block,   MP.free,  MP.free, MP.free, MP.block, MP.free,  MP.block,  MP.block,   MP.free,   MP.free ],
-	[   MP.free,  MP.block,   MP.free,   MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.block,   MP.free,   MP.free,   MP.free ],
-	[   MP.free,   MP.free,   MP.free,   MP.free,  MP.free, MP.free,  MP.free, MP.free,   MP.free,   MP.free,   MP.free, MP.target ],
-	[ MP.border, MP.border, MP.border, MP.border,  MP.free, MP.free, MP.block, MP.free, MP.border, MP.border, MP.border, MP.border ],
-	[ MP.border, MP.border, MP.border, MP.border,  MP.free, MP.free,  MP.free, MP.free, MP.border, MP.border, MP.border, MP.border ],
-	[ MP.border, MP.border, MP.border, MP.border,  MP.free, MP.free,  MP.free, MP.free, MP.border, MP.border, MP.border, MP.border ],
-	[ MP.border, MP.border, MP.border, MP.border,  MP.free, MP.free, MP.block, MP.free, MP.border, MP.border, MP.border, MP.border ],
-	[ MP.border, MP.border, MP.border, MP.border,  MP.free, MP.free,  MP.free, MP.free, MP.border, MP.border, MP.border, MP.border ],
+	[  MP.free,  MP.free,  MP.free,  MP.free, MP.block, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,  MP.block ],
+	[  MP.free, MP.block,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,  MP.block ],
+	[ MP.block,  MP.free, MP.block,  MP.free,  MP.free, MP.free, MP.block, MP.free, MP.block, MP.block,  MP.free,   MP.free ],
+	[  MP.free, MP.block,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free, MP.block,  MP.free,  MP.free,   MP.free ],
+	[  MP.free,  MP.free,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free, MP.target ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free, MP.block, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free, MP.block, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
 ];
 
 const start: Coord = [9, 4];
@@ -51,7 +51,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [qTable, setQTable] = useState(generateQTable(map));
 	const [converged, setConverged] = useState(false);
 	const [choice, setChoice] = useState<Choice>('random');
-	const episodes = useRef(0);
+	const [episodes, setEpisodes] = useState(0);
 
 
 	return <PolicyContext.Provider value={{
@@ -65,12 +65,12 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 		setConverged,
 		choice,
 		setChoice,
+		episodes,
+		setEpisodes,
 		start,
 		target,
 		gama,
-		episodes,
 		moveAgent,
-		checkConvergence,
 	}}>
 		{children}
 	</PolicyContext.Provider>
@@ -87,7 +87,7 @@ function generateQTable (map: Action[][]): QTable {
 
 	map.map((row, i) => {
 		row.map((_, j) => {
-			if (![MP.block, MP.border].includes(map[i][j])) {
+			if (![MP.block,  MP.blank].includes(map[i][j])) {
 				QTable[i + ':' + j] = typeof QTable[i + ':' + j] == 'undefined' ? {} : QTable[i + ':' + j];
 
 				if (i > 0 && map[i - 1][j] >= 0) {
@@ -170,7 +170,7 @@ function moveAgent(policy: Policy, timelimit: number): ReturnType<typeof setTime
 		
 		
 		if (policy.position.join(',') === policy.target.join(',')) {
-			if (Math.random() >= 0.7) {
+			if (policy.converged === false && Math.random() >= 0.7) {
 				policy.setChoice('random');
 			} else {
 				policy.setChoice('best');
@@ -190,9 +190,17 @@ function updateQTable(policy: Policy, target: Coord) {
 	const neighbors = policy.qTable[target.join(':')];
 	
 	let maxValue = policy.gama * Math.max(...Object.values(neighbors));
+	let value = 0;
 	
 	if (policy.target.join(':') === target.join(':')) {
 		maxValue = 100;
+		if (policy.converged === false) {
+			policy.setEpisodes(value => value + 1);
+		}
+	}
+
+	if (checkConvergence(policy, target, value)) {
+		policy.setConverged(true);
 	}
 	
 	policy.setMap(old => {
@@ -201,11 +209,31 @@ function updateQTable(policy: Policy, target: Coord) {
 	});
 	
 	policy.setQTable(old => {
-		old[policy.position.join(':')][target.join(':')] = Math.max(maxValue, old[policy.position.join(':')][target.join(':')]);
+		value = Math.max(maxValue, old[policy.position.join(':')][target.join(':')]);
+		old[policy.position.join(':')][target.join(':')] = value;
 		return old;
 	});
 }
 
-function checkConvergence(policy: Policy, nextAction: string) {
-	return false;
+function checkConvergence(policy: Policy, nextAction: Coord, value: number) {
+	let response = true;
+
+	Object.entries(policy.qTable).forEach(([position, actions]) => {
+		if (position !== policy.target.join(':')) {
+			Object.entries(actions).forEach(([action, reward]) => {
+				if (response && reward === 0) {
+					response = false;
+				}
+			});
+		}
+	});
+
+	const newQTable = Object.assign(policy.qTable);
+	newQTable[policy.position.join(':')][nextAction.join(':')] = value;
+
+	if (response && JSON.stringify(policy.qTable) !== JSON.stringify(newQTable)) {
+		response = false;
+	}
+
+	return response;
 }

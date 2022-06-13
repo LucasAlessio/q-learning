@@ -2,6 +2,13 @@ import styled, { css } from 'styled-components';
 import { MapState as MP } from '../../enums/MapState';
 import { Coord, Action } from '../../types';
 
+interface UnityProps {
+	values: Action[],
+	row: number,
+	target: Coord,
+	showCoordinates: boolean,
+}
+
 function hexToRgb(hex: string): Record<'r' | 'g' | 'b', number> {
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result ? {
@@ -41,7 +48,7 @@ const Div = styled.div`
 		background: #000;
 	`}
 
-	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.border && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.blank && !dataActive && css`
 		border-color: transparent;
 	`}
 
@@ -50,7 +57,7 @@ const Div = styled.div`
 	`}
 `;
 
-export function Unity({values, row, target}: {values: Action[], row: number, target: Coord}) {
+export function Unity({values, row, target, showCoordinates}: UnityProps) {
 	return <>
 		{values.map((value, column) => {
 			return <Div
@@ -58,7 +65,7 @@ export function Unity({values, row, target}: {values: Action[], row: number, tar
 						dataActive={[target].join(",") === [row, column].join(',')}
 						key={column}
 					>
-						{ /* value !== MP.border ? `${row}:${column}` : <></> */ }
+						{ showCoordinates ? value !== MP.blank ? `${row}:${column}` : <></> : <></> }
 					</Div>
 		})}
 	</>
