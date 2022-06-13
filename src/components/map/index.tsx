@@ -1,11 +1,8 @@
 import { ChangeEvent, useContext, useEffect, useState } from 'react';
 import { Unity } from './Unity';
-import { ValuePossible } from '../../types';
+import { Action, Choice, Coord } from '../../types';
 import { Policy, PolicyContext } from '../../hooks/usePolicy';
-import { Coord } from './ValuePossible';
 import styled from 'styled-components';
-
-const GAMA = 0.9;
 
 const Container = styled.div`
 	display: table;
@@ -19,7 +16,10 @@ const Row = styled.div`
 	flex-direction: row;
 	justify-content: flex-start;
 	align-items: center;
-	margin-bottom: -2px;
+	
+	& + & {
+		margin-top: -2px;
+	}
 `;
 
 const Input = styled.input`
@@ -35,6 +35,11 @@ const Input = styled.input`
 	appearance: none;
 `;
 
+const choices: Record<Choice, string> = {
+	'best': 'melhor',
+	'random': 'aleatoria',
+};
+
 export function Map() {
 	const [timelimit, setTimeLimit] = useState(250);
 	const [active, setActive] = useState(false);
@@ -46,83 +51,75 @@ export function Map() {
 	}
 
 	useEffect(() => {
-		if (!active) {
+		if (!active || policy.converged) {
 			return;
 		}
 
-		const timeout = updateMap(policy, timelimit);
+		const timeout = moveAgent(policy, timelimit);
 
 		return () => clearTimeout(timeout);
 	}, [active, policy, timelimit]);
 
-	return <Container>
-		<Input value={timelimit} onChange={handleChange} />
-		<button onClick={_ => setActive(old => !old)}>{active ? 'stop' : 'start'}</button>
+	return <div>
+		<Container>
+			<Input value={timelimit} onChange={handleChange} />
+			<button onClick={_ => setActive(old => !old)}>{active ? 'stop' : 'start'}</button>
 
-		{policy.map.map((row: ValuePossible[], i) => {
-			return <Row key={i}>
-				<Unity
-					values={row}
-					row={i} target={policy.position}
-				/>
-			</Row>;
-		})}
-	</Container>;
+			{policy.map.map((row: Action[], i) => {
+				return <Row key={i}>
+					<Unity
+						values={row}
+						row={i} target={policy.position}
+					/>
+				</Row>;
+			})}
+		</Container>
+		escolha: {choices[policy.choice.current]}
+	</div>;
 }
 
-function updateMap(policy: Policy, timelimit: number): ReturnType<typeof setTimeout> {
+function moveAgent(policy: Policy, timelimit: number): ReturnType<typeof setTimeout> {
 	return setTimeout(() => {
 		const position = policy.position.join(':');
+		const actions = Object.keys(policy.qTable[position]);
 		let action: Coord;
 
-		let bestAction: string = "";
-		Object.entries(policy.qTable[position]).map(([action, reward]) => {
-			if (bestAction.length === 0 && reward > 0) {
-				bestAction = action;
-			}
-		});
+		if (policy.choice.current === 'best') {
+			let bestAction: string = "";
 
-		if (bestAction.length === 0) {
-			const actions = Object.keys(policy.qTable[position]);
-			action = actions[Math.floor(Math.random() * actions.length)].split(':').map(value => {
-			 	return Number(value);
-			}) as Coord;
+			Object.entries(policy.qTable[position]).map(([action, reward]) => {
+				if (bestAction.length === 0 && reward > 0) {
+					bestAction = action;
+				}
+				return null;
+			});
+
+			if (bestAction.length === 0) {
+				action = actions[Math.floor(Math.random() * actions.length)].split(':').map(value => {
+					return Number(value);
+				}) as Coord;
+			} else {
+				action = bestAction.split(':').map(value => {
+					return Number(value);
+				}) as Coord;
+			}
 		} else {
-			action = bestAction.split(':').map(value => {
+			action = actions[Math.floor(Math.random() * actions.length)].split(':').map(value => {
 				return Number(value);
-		   }) as Coord;
+			}) as Coord;
 		}
 
 	
 		if (policy.position.join(',') === policy.target.join(',')) {
+			policy.choice.current = 'best';
+			if (Math.random() >= 0.7) {
+				policy.choice.current = 'random';
+			}
+
 			policy.setPosition(policy.start);
 		}
 		else {
-			// if (policy.map[action[0]][action[1]] > 0) {
-			// 	const neighbors = Object.keys(policy.qTable[action[0] + ':' + action[1]]);
-				
-			// 	neighbors.map((neighbor) => {
-			// 		const posNeighbor = neighbor.split(':').map(value => {
-			// 			return Number(value);
-			// 		});
-
-			// 		policy.setMap((old) => {
-			// 			if (
-			// 				![MapState.block, MapState.border].includes(old[posNeighbor[0]][posNeighbor[1]]) &&
-			// 				![MapState.block, MapState.border].includes(policy.map[action[0]][action[1]]) &&
-			// 				old[posNeighbor[0]][posNeighbor[1]] < policy.map[action[0]][action[1]] * 0.9
-			// 			) {
-			// 				policy.map[posNeighbor[0]][posNeighbor[1]] = policy.map[action[0]][action[1]] * 0.9;
-			// 			}
-						
-			// 			return policy.map;
-			// 		});
-
-			// 		return null;
-			// 	})
-			// }
 			updateQTable(policy, action);
-
 			policy.setPosition(action);
 		}
 	
@@ -132,10 +129,16 @@ function updateMap(policy: Policy, timelimit: number): ReturnType<typeof setTime
 function updateQTable(policy: Policy, position: Coord) {
 	const neighbors = policy.qTable[position.join(':')];
 	
-	let maxValue = GAMA  * Math.max(...Object.values(neighbors));
+	let maxValue = policy.gama  * Math.max(...Object.values(neighbors));
 	if (policy.target.join(':') === position.join(':')) {
 		maxValue = 100;
 	}
+
+	policy.setMap(old => {
+		old[policy.position[0]][policy.position[1]] = maxValue * policy.gama;
+
+		return old;
+	});
 
 	policy.setQTable(old => {
 		old[policy.position.join(':')][position.join(':')] = maxValue;

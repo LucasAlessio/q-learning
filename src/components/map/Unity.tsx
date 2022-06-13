@@ -1,6 +1,6 @@
 import styled, { css } from 'styled-components';
 import { MapState as MP } from '../../enums/MapState';
-import { Coord, ValuePossible } from '../../types';
+import { Coord, Action } from '../../types';
 
 function hexToRgb(hex: string): Record<'r' | 'g' | 'b', number> {
 	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -20,9 +20,12 @@ const Div = styled.div`
 	width: 35px;
 	height: 35px;
 	border: 2px solid #a79259;
-	margin-right: -2px;
+	
+	& + & {
+		margin-left: -2px;
+	}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType > 0 && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType > 0 && !dataActive && css`
 		background: rgba(
 			${hexToRgb("#59824b").r},
 			${hexToRgb("#59824b").g},
@@ -31,20 +34,20 @@ const Div = styled.div`
 		);
 	`}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === MP.block && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.block && !dataActive && css`
 		background: #000;
 	`}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataType === MP.border && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.border && !dataActive && css`
 		border-color: transparent;
 	`}
 
-	${({dataType, dataActive}: {dataType: ValuePossible, dataActive: boolean}) => dataActive && css`
+	${({dataActive}: {dataActive: boolean}) => dataActive && css`
 		background: #b35a58;
 	`}
 `;
 
-export function Unity({values, row, target}: {values: ValuePossible[], row: number, target: Coord}) {
+export function Unity({values, row, target}: {values: Action[], row: number, target: Coord}) {
 	return <>
 		{values.map((value, j) => {
 			return <Div
