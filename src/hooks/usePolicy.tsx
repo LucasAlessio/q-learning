@@ -1,6 +1,6 @@
-import { createContext, Dispatch, ReactNode, SetStateAction, useContext, useState } from "react";
+import { createContext, Dispatch, MutableRefObject, ReactNode, SetStateAction, useContext, useRef, useState } from "react";
 import { MapState as MP } from "../enums/MapState";
-import { Coord, QTable, Action, Choice } from "../types";
+import { Coord, QTable, Action } from "../types";
 
 interface Policy {
 	map: Action[][];
@@ -9,16 +9,16 @@ interface Policy {
 	setPosition: Dispatch<SetStateAction<Coord>>,
 	qTable: QTable;
 	setQTable: Dispatch<SetStateAction<QTable>>;
-	converged: boolean,
-	setConverged: Dispatch<SetStateAction<boolean>>;
-	choice: Choice;
-	setChoice: Dispatch<SetStateAction<Choice>>,
+	converged: number,
+	setConverged: Dispatch<SetStateAction<number>>;
+	hasChanges: MutableRefObject<boolean>,
+	// setHasChanges: Dispatch<SetStateAction<boolean>>;
 	episodes: number,
 	setEpisodes: Dispatch<SetStateAction<number>>,
 	start: [number, number],
 	target: [number, number],
 	gama: number,
-	moveAgent: (policy: Policy, timelimit: number) => ReturnType<typeof setTimeout>
+	moveAgent: (policy: Policy, timelimit: number, bestChoicePercentage: number) => ReturnType<typeof setTimeout>
 }
 
 interface PolicyProviderProps {
@@ -49,10 +49,10 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [map, setMap] = useState(initMap as Action[][]);
 	const [position, setPosition] = useState(start);
 	const [qTable, setQTable] = useState(generateQTable(map));
-	const [converged, setConverged] = useState(false);
-	const [choice, setChoice] = useState<Choice>('random');
+	const [converged, setConverged] = useState(0);
+	// const [hasChanges, setHasChanges] = useState(false);
+	const hasChanges = useRef(false);
 	const [episodes, setEpisodes] = useState(0);
-
 
 	return <PolicyContext.Provider value={{
 		map,
@@ -63,8 +63,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 		setQTable,
 		converged,
 		setConverged,
-		choice,
-		setChoice,
+		hasChanges,
 		episodes,
 		setEpisodes,
 		start,
@@ -122,13 +121,15 @@ function generateQTable (map: Action[][]): QTable {
 	return QTable;
 };
 
-function moveAgent(policy: Policy, timelimit: number): ReturnType<typeof setTimeout> {
+function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: number): ReturnType<typeof setTimeout> {
 	return setTimeout(() => {
 		const position = policy.position.join(':');
 		const actions = Object.keys(policy.qTable[position]);
 		let action: Coord;
+
+		const choice = Math.random() >= (bestChoicePercentage / 100) ? 'random' : 'best';
 		
-		if (policy.choice === 'best') {
+		if (choice === 'best') {
 			let bestActions: { action: string, reward: number }[] = [];
 			
 			Object.entries(policy.qTable[position]).map(([action, reward]) => {
@@ -170,11 +171,11 @@ function moveAgent(policy: Policy, timelimit: number): ReturnType<typeof setTime
 		
 		
 		if (policy.position.join(',') === policy.target.join(',')) {
-			if (policy.converged === false && Math.random() >= 0.7) {
-				policy.setChoice('random');
-			} else {
-				policy.setChoice('best');
-			}
+			// if (policy.converged <= 1 && Math.random() >= 0.7) {
+			// 	policy.setChoice('random');
+			// } else {
+			// 	policy.setChoice('best');
+			// }
 			
 			policy.setPosition(policy.start);
 		}
@@ -194,16 +195,15 @@ function updateQTable(policy: Policy, target: Coord) {
 	
 	if (policy.target.join(':') === target.join(':')) {
 		maxValue = 100;
-		if (policy.converged === false) {
-			policy.setEpisodes(value => value + 1);
+		
+		if (policy.converged <= 1) {
+			policy.setEpisodes(old => old + 1);
+			policy.hasChanges.current = false;
 		}
 	}
-
-	if (checkConvergence(policy, target, value)) {
-		policy.setConverged(true);
-		policy.setChoice('best');
-	}
 	
+	checkChanges(policy, target, value);
+
 	policy.setMap(old => {
 		old[policy.position[0]][policy.position[1]] = Math.max(maxValue * policy.gama, old[policy.position[0]][policy.position[1]]);
 		return old;
@@ -214,27 +214,34 @@ function updateQTable(policy: Policy, target: Coord) {
 		old[policy.position.join(':')][target.join(':')] = value;
 		return old;
 	});
+
+	
+	if (policy.target.join(':') === target.join(':')) {
+		if (policy.hasChanges.current === false) {
+			policy.setConverged(old => old + 1);
+		}
+	}
 }
 
-function checkConvergence(policy: Policy, nextAction: Coord, value: number) {
-	let response = true;
-
-	Object.entries(policy.qTable).forEach(([position, actions]) => {
+function checkChanges(policy: Policy, nextAction: Coord, value: number) {
+	const response: boolean = Object.entries(policy.qTable).some(([position, actions]) => {
 		if (position !== policy.target.join(':')) {
-			Object.entries(actions).forEach(([action, reward]) => {
-				if (response && reward === 0) {
-					response = false;
+			return Object.entries(actions).some(([action, reward]) => {
+				if (reward === 0) {
+					policy.hasChanges.current = true;
+					return true;
 				}
+				return false;
 			});
 		}
+		return false;
 	});
 
 	const newQTable = Object.assign(policy.qTable);
 	newQTable[policy.position.join(':')][nextAction.join(':')] = value;
 
-	if (response && JSON.stringify(policy.qTable) !== JSON.stringify(newQTable)) {
-		response = false;
+	if (response === false && JSON.stringify(policy.qTable) !== JSON.stringify(newQTable)) {
+		console.log("mudou");
+		policy.hasChanges.current = true;
 	}
-
-	return response;
 }

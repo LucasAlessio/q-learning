@@ -1,25 +1,14 @@
 import styled, { css } from 'styled-components';
 import { MapState as MP } from '../../enums/MapState';
 import { Coord, Action } from '../../types';
+import { hex2rgb } from '../../utils/hex2rgb';
 
 interface UnityProps {
 	values: Action[],
 	row: number,
 	target: Coord,
+	showHeatmap: boolean,
 	showCoordinates: boolean,
-}
-
-function hexToRgb(hex: string): Record<'r' | 'g' | 'b', number> {
-	var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return result ? {
-		r: parseInt(result[1], 16),
-		g: parseInt(result[2], 16),
-		b: parseInt(result[3], 16)
-	} : {
-		r: 0,
-		g: 0,
-		b: 0
-	};
 }
 
 const Div = styled.div`
@@ -28,18 +17,22 @@ const Div = styled.div`
 	display: block;
 	width: 35px;
 	height: 35px;
-	border: 2px solid #a79259;
+	border: 1px solid #a79259;
 	
 	& + & {
-		margin-left: -2px;
+		margin-left: -1px;
 	}
 
-	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType > 1 && !dataActive && css`
+	${({dataType, dataActive, dataShowheatmap}: {
+		dataType: Action,
+		dataActive: boolean,
+		dataShowheatmap: boolean
+	}) => dataType > 1 && !dataActive && ((!dataShowheatmap && dataType === MP.target) || dataShowheatmap === true) && css`
 		background: rgba(
-			${hexToRgb("#59824b").r},
-			${hexToRgb("#59824b").g},
-			${hexToRgb("#59824b").b},
-			${Number(dataType) / 100}
+			${ hex2rgb("#59824b").r },
+			${ hex2rgb("#59824b").g },
+			${ hex2rgb("#59824b").b },
+			${ Number(dataType) / 100 }
 		);
 	`}
 
@@ -57,14 +50,15 @@ const Div = styled.div`
 	`}
 `;
 
-export function Unity({values, row, target, showCoordinates}: UnityProps) {
+export function Unity({values, row, target, showHeatmap, showCoordinates}: UnityProps) {
 	return <>
 		{values.map((value, column) => {
 			return <Div
 						dataType={value}
 						dataActive={[target].join(",") === [row, column].join(',')}
+						dataShowheatmap={showHeatmap}
 						key={column}
-					>
+						>
 						{ showCoordinates ? value !== MP.blank ? `${row}:${column}` : <></> : <></> }
 					</Div>
 		})}
