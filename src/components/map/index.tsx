@@ -7,7 +7,8 @@ import { SSwitch } from '../form/SSwitch';
 import { useForm } from 'react-hook-form';
 import { SSlider } from '../form/SSlider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faEllipsis } from '@fortawesome/free-solid-svg-icons';
+import { faCheckSquare } from '@fortawesome/free-solid-svg-icons';
+import { faSquare } from '@fortawesome/free-regular-svg-icons';
 import { Presentation } from '../Presentation';
 import styled from 'styled-components';
 
@@ -125,7 +126,7 @@ export function Map() {
 			<Content>
 				<div>
 					<Info>Episódios: <b>{policy.episodes}</b></Info>
-					<Info>Convergiu: <b>{policy.converged ? <FontAwesomeIcon icon={faCheck} /> : <FontAwesomeIcon icon={faEllipsis} pulse />}</b></Info>
+					<Info>{policy.converged ? <FontAwesomeIcon icon={faCheckSquare} /> : <FontAwesomeIcon icon={faSquare}  /> } Convergiu</Info>
 				</div>
 			</Content>
 		</Container>
