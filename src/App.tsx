@@ -1,33 +1,43 @@
-import { ReactNode } from "react";
 import { Map } from "./components/map";
 import { QTable } from "./components/table";
 import { PolicyProvider } from "./hooks/usePolicy";
 import { GlobalStyle } from "./styles/GlobalStyle";
 import styled from "styled-components";
 
-const Div = styled.div`
+const Row = styled.div`
 	position: relative;
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
-	align-items: flex-start;
+	align-items: stretch;
 	gap: 20px;
-	padding: 20px 0;
+	padding: 20px;
+
+	@media screen and (max-width: 560px) {
+		flex-direction: column;
+	}
 `;
 
-function Row({children}: {children: ReactNode}) {
-	return <Div>
-		{children}
-	</Div>
-}
+const Column = styled.div`
+	width: auto;
+	max-width: 430px;
+
+	@media screen and (max-width: 560px) {
+		max-width: none;
+	}
+`
 
 export function App() {
 	return <div className="App">
 		<GlobalStyle />
 		<PolicyProvider>
 			<Row>
-				<Map />
-				<QTable />
+				<Column>
+					<Map />
+				</Column>
+				<Column>
+					<QTable />
+				</Column>
 			</Row>
 		</PolicyProvider>
 	</div>

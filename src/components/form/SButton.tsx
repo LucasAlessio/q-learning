@@ -3,8 +3,9 @@ import { Button, ButtonTypeMap } from "@mui/material";
 import { styled } from "@mui/system";
 
 interface SButtonProps {
-	variant: ButtonTypeMap['props']["variant"];
-	onClick: (event: MouseEvent<HTMLElement>) => void;
+	variant: ButtonTypeMap['props']["variant"],
+	onClick: (event: MouseEvent<HTMLElement>) => void,
+	disabled?: boolean,
 	children: ReactNode,
 }
 
@@ -16,7 +17,8 @@ const StyledButton = styled(Button) (({ variant }) => ({
 	color: variant === 'contained' ? '#fff' : '#558aab',
 	borderRadius: 0,
 	padding: '0 18px',
-	minWidth: '85px',
+	height: '40px',
+	minWidth: '95px',
 	borderColor: '#558aab',
 	backgroundColor: variant === 'contained' ? '#558aab' : 'initial',
 	'&:hover': {
@@ -27,8 +29,8 @@ const StyledButton = styled(Button) (({ variant }) => ({
 	},
 }));
 
-export function SButton({variant, onClick, children}: SButtonProps) {
-	return <StyledButton variant={variant} onClick={onClick}>
+export function SButton({variant, onClick, disabled, children}: SButtonProps) {
+	return <StyledButton variant={variant} onClick={onClick} disabled={disabled}>
 		{children}
 	</StyledButton>;
 }

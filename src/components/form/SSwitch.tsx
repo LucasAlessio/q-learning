@@ -14,14 +14,14 @@ const StyledSwitch = styled((props: SwitchProps) => (
 	width: 42,
 	height: 26,
 	padding: 0,
-	'& .MuiSwitch-switchBase': {
+	'.MuiSwitch-switchBase': {
 		padding: 0,
 		margin: 2,
 		transitionDuration: '300ms',
 		'&.Mui-checked': {
 			transform: 'translateX(16px)',
 			color: '#fff',
-			'& + .MuiSwitch-track': {
+			'+ .MuiSwitch-track': {
 				backgroundColor: theme.palette.mode === 'dark' ? '#2ECA45' : '#558aab',
 				opacity: 1,
 				border: 0,
@@ -44,13 +44,13 @@ const StyledSwitch = styled((props: SwitchProps) => (
 			opacity: theme.palette.mode === 'light' ? 0.7 : 0.3,
 		},
 	},
-	'& .MuiSwitch-thumb': {
+	'.MuiSwitch-thumb': {
 		boxSizing: 'border-box',
 		width: 22,
 		height: 22,
 		boxShadow: 'none',
 	},
-	'& .MuiSwitch-track': {
+	'.MuiSwitch-track': {
 		borderRadius: 26 / 2,
 		backgroundColor: theme.palette.mode === 'light' ? '#E9E9EA' : '#39393D',
 		opacity: 1,
@@ -68,7 +68,7 @@ export function SSwitch({label, checked, onChange}: SSwitchProps) {
 			<StyledSwitch
 				checked={checked}
 				onChange={onChange}
-				sx={{ mr: 1 }}
+				sx={{mr: 1}}
 				/>
 		}
 		label={

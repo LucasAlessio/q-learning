@@ -12,12 +12,26 @@ interface UnityProps {
 }
 
 const Div = styled.div`
-	line-height: 35px;
-	text-align: center;
+	position: relative;
+	flex-grow: 1;
 	display: block;
-	width: 35px;
-	height: 35px;
 	border: 1px solid #a79259;
+
+	&:after {
+		content: " ";
+		display: block;
+		width: 100%;
+		height: 0;
+		padding-top: 100%;
+	}
+
+	span {
+		font-size: 1rem;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+	}
 	
 	& + & {
 		margin-left: -1px;
@@ -54,13 +68,13 @@ export function Unity({values, row, target, showHeatmap, showCoordinates}: Unity
 	return <>
 		{values.map((value, column) => {
 			return <Div
-						dataType={value}
-						dataActive={[target].join(",") === [row, column].join(',')}
-						dataShowheatmap={showHeatmap}
-						key={column}
-						>
-						{ showCoordinates ? value !== MP.blank ? `${row}:${column}` : <></> : <></> }
-					</Div>
+				dataType={value}
+				dataActive={[target].join(",") === [row, column].join(',')}
+				dataShowheatmap={showHeatmap}
+				key={column}
+				>
+				{ showCoordinates ? value !== MP.blank ? <span>{row}:{column}</span> : <></> : <></> }
+			</Div>
 		})}
 	</>
 }

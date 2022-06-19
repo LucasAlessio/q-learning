@@ -11,6 +11,7 @@ const baseTdStyles = css`
 `;
 
 const Table = styled.table`
+	width: 100%;
 	border-collapse: collapse;
 `;
 

@@ -1,19 +1,24 @@
 import { ChangeEvent, useContext, useEffect } from 'react';
 import { Unity } from './Unity';
 import { Action, ConfigFields } from '../../types';
-import { PolicyContext } from '../../hooks/usePolicy';
+import { PolicyContext, moveAgent } from '../../hooks/usePolicy';
 import { Control } from '../control';
 import { SSwitch } from '../form/SSwitch';
 import { useForm } from 'react-hook-form';
 import { SSlider } from '../form/SSlider';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faEllipsis } from '@fortawesome/free-solid-svg-icons';
+import { Presentation } from '../Presentation';
 import styled from 'styled-components';
 
 const Container = styled.div`
 	position: sticky;
 	top: 20px;
+	margin-top: 20px;
 `;
 
 const Row = styled.div`
+	width: 100%;
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-start;
@@ -24,12 +29,10 @@ const Row = styled.div`
 	}
 `;
 
-const FormGroup = styled.div`
-	margin-top: 20px;
-`;
-
-const Infos = styled.div`
-	margin-top: 20px;
+const Content = styled.div`
+	& + & {
+		margin-top: 20px;
+	}
 `;
 
 const Info = styled.p`
@@ -41,79 +44,90 @@ const Info = styled.p`
 `;
 
 export function Map() {
-	const { register, watch, setValue } = useForm<ConfigFields>({
+	const { register, watch, setValue, formState: { errors } } = useForm<ConfigFields>({
+		mode: 'onChange',
+		reValidateMode: 'onChange',
 		defaultValues: {
 			timeLimit: 250,
-			bestChoicePercentage: 70,
+			bestChoicePercentage: 0.7,
 			buttonActive: false,
 			showHeatmap: true,
 			showCoordinates: false,
 		}
 	});
 	const values = watch();
-
+	const hasErrors = Object.keys(errors).length > 0;
+	
 	const policy = useContext(PolicyContext);
 
 	useEffect(() => {
-		if (!values.buttonActive) {
+		if (!values.buttonActive || hasErrors) {
 			return;
 		}
 
-		const timeout = policy.moveAgent(policy, values.timeLimit, values.bestChoicePercentage);
+		const timeout = moveAgent(policy, values.timeLimit, values.bestChoicePercentage);
 
 		return () => clearTimeout(timeout);
-	}, [policy, values.buttonActive, values.timeLimit, values.bestChoicePercentage]);
+	}, [policy, values.buttonActive, values.timeLimit, values.bestChoicePercentage, hasErrors]);
 
-	return <Container>
-		<h1>Q-learning</h1>
-		<p>Página para a visualização do aprendizado por reforço</p>
-		<div>
-			<Control
-				register={register}
-				buttonActive={values.buttonActive}
-				setButtonActive={() => setValue('buttonActive', !values.buttonActive)}
-			/>
+	return <>
+		<Presentation />
+		<Container>
+			<Content>
+				<Control
+					register={register}
+					buttonActive={values.buttonActive}
+					setButtonActive={() => setValue('buttonActive', !values.buttonActive)}
+					errors={errors}
+				/>
 
-			{policy.map.map((row: Action[], i) => {
-				return <Row key={i}>
-					<Unity
-						values={row}
-						row={i} target={policy.position}
-						showCoordinates={values.showCoordinates}
-						showHeatmap={values.showHeatmap}
-						/>
-				</Row>;
-			})}
-		</div>
-		<FormGroup>
-			<SSlider
-				label="Porcentagem de melhor escolha"
-				defaultValue={70}
-				min={0}
-				max={100}
-				step={10}
-				onChange={(event, newValue) => setValue("bestChoicePercentage", newValue as number)}
-				valueLabelFormat={(value: number) => `${value}/${100 - value}`}
-				/>
-		</FormGroup>
-		<FormGroup>
-			<SSwitch
-				label='Exibir mapa de calor'
-				checked={values.showHeatmap}
-				onChange={(event: ChangeEvent<HTMLInputElement>) => setValue('showHeatmap', event.target.checked)}
-				/>
-		</FormGroup>
-		<FormGroup>
-			<SSwitch
-				label='Exibir coordenadas'
-				checked={values.showCoordinates}
-				onChange={(event: ChangeEvent<HTMLInputElement>) => setValue('showCoordinates', event.target.checked)}
-				/>
-		</FormGroup>
-		<Infos>
-			<Info>Episódios: <b>{policy.episodes}</b></Info>
-			<Info>Convergiu: <b>{policy.converged}</b></Info>
-			<Info>Houve alterações: <b>{policy.hasChanges.current ? 'Sim' : 'Não'}</b></Info>
-		</Infos>
-	</Container>;
+				{policy.map.map((row: Action[], i) => {
+					return <Row key={i}>
+						<Unity
+							values={row}
+							row={i} target={policy.position}
+							showCoordinates={values.showCoordinates}
+							showHeatmap={values.showHeatmap}
+							/>
+					</Row>;
+				})}
+			</Content>
+
+			<Content>
+				<SSlider
+					label="Porcentagem de melhor escolha"
+					defaultValue={values.bestChoicePercentage}
+					min={0}
+					max={1}
+					step={0.1}
+					disabled={policy.converged}
+					onChange={(event, newValue) => setValue("bestChoicePercentage", newValue as number)}
+					valueLabelFormat={(value: number) => `${value * 100}/${100 - value * 100}`}
+					/>
+			</Content>
+			
+			<Content>
+				<SSwitch
+					label='Exibir mapa de calor'
+					checked={values.showHeatmap}
+					onChange={(event: ChangeEvent<HTMLInputElement>) => setValue('showHeatmap', event.target.checked)}
+					/>
+			</Content>
+
+			<Content>
+				<SSwitch
+					label='Exibir coordenadas'
+					checked={values.showCoordinates}
+					onChange={(event: ChangeEvent<HTMLInputElement>) => setValue('showCoordinates', event.target.checked)}
+					/>
+			</Content>
+
+			<Content>
+				<div>
+					<Info>Episódios: <b>{policy.episodes}</b></Info>
+					<Info>Convergiu: <b>{policy.converged ? <FontAwesomeIcon icon={faCheck} /> : <FontAwesomeIcon icon={faEllipsis} pulse />}</b></Info>
+				</div>
+			</Content>
+		</Container>
+	</>;
 }

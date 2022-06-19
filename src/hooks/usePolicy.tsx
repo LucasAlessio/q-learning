@@ -9,16 +9,14 @@ interface Policy {
 	setPosition: Dispatch<SetStateAction<Coord>>,
 	qTable: QTable;
 	setQTable: Dispatch<SetStateAction<QTable>>;
-	converged: number,
-	setConverged: Dispatch<SetStateAction<number>>;
-	hasChanges: MutableRefObject<boolean>,
-	// setHasChanges: Dispatch<SetStateAction<boolean>>;
+	converged: boolean,
+	setConverged: Dispatch<SetStateAction<boolean>>;
 	episodes: number,
 	setEpisodes: Dispatch<SetStateAction<number>>,
+	hasChanges: MutableRefObject<boolean>,
 	start: [number, number],
 	target: [number, number],
 	gama: number,
-	moveAgent: (policy: Policy, timelimit: number, bestChoicePercentage: number) => ReturnType<typeof setTimeout>
 }
 
 interface PolicyProviderProps {
@@ -49,10 +47,9 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [map, setMap] = useState(initMap as Action[][]);
 	const [position, setPosition] = useState(start);
 	const [qTable, setQTable] = useState(generateQTable(map));
-	const [converged, setConverged] = useState(0);
-	// const [hasChanges, setHasChanges] = useState(false);
-	const hasChanges = useRef(false);
+	const [converged, setConverged] = useState(false);
 	const [episodes, setEpisodes] = useState(0);
+	const hasChanges = useRef(false);
 
 	return <PolicyContext.Provider value={{
 		map,
@@ -63,13 +60,12 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 		setQTable,
 		converged,
 		setConverged,
-		hasChanges,
 		episodes,
 		setEpisodes,
+		hasChanges,
 		start,
 		target,
-		gama,
-		moveAgent,
+		gama
 	}}>
 		{children}
 	</PolicyContext.Provider>
@@ -121,15 +117,15 @@ function generateQTable (map: Action[][]): QTable {
 	return QTable;
 };
 
-function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: number): ReturnType<typeof setTimeout> {
+export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: number): ReturnType<typeof setTimeout> {
 	return setTimeout(() => {
 		const position = policy.position.join(':');
 		const actions = Object.keys(policy.qTable[position]);
 		let action: Coord;
 
-		const choice = Math.random() >= (bestChoicePercentage / 100) ? 'random' : 'best';
+		const choice = Math.random() >= (bestChoicePercentage) ? 'random' : 'best';
 		
-		if (choice === 'best') {
+		if (policy.converged === true || choice === 'best') {
 			let bestActions: { action: string, reward: number }[] = [];
 			
 			Object.entries(policy.qTable[position]).map(([action, reward]) => {
@@ -171,13 +167,15 @@ function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: numb
 		
 		
 		if (policy.position.join(',') === policy.target.join(',')) {
-			// if (policy.converged <= 1 && Math.random() >= 0.7) {
-			// 	policy.setChoice('random');
-			// } else {
-			// 	policy.setChoice('best');
-			// }
+			if (policy.hasChanges.current === false) {
+				policy.setConverged(true);
+			}
+			if (policy.converged === false) {
+				policy.setEpisodes(episodes => episodes + 1);
+			}
 			
 			policy.setPosition(policy.start);
+			policy.hasChanges.current = false;
 		}
 		else {
 			updateQTable(policy, action);
@@ -187,61 +185,29 @@ function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: numb
 	}, timelimit);
 }
 
-function updateQTable(policy: Policy, target: Coord) {
-	const neighbors = policy.qTable[target.join(':')];
+function updateQTable(policy: Policy, nextAction: Coord) {
+	const neighbors = policy.qTable[nextAction.join(':')];
 	
 	let maxValue = policy.gama * Math.max(...Object.values(neighbors));
 	let value = 0;
 	
-	if (policy.target.join(':') === target.join(':')) {
+	if (policy.target.join(':') === nextAction.join(':')) {
 		maxValue = 100;
+	}
+
+	policy.setMap(map => {
+		map[policy.position[0]][policy.position[1]] = Math.max(maxValue * policy.gama, map[policy.position[0]][policy.position[1]]);
+		return map;
+	});
+
+	policy.setQTable(qTable => {
+		value = Math.max(maxValue, qTable[policy.position.join(':')][nextAction.join(':')]);
 		
-		if (policy.converged <= 1) {
-			policy.setEpisodes(old => old + 1);
-			policy.hasChanges.current = false;
+		if (value !== qTable[policy.position.join(':')][nextAction.join(':')]) {
+			qTable[policy.position.join(':')][nextAction.join(':')] = value;
+			policy.hasChanges.current = true;
 		}
-	}
-	
-	checkChanges(policy, target, value);
 
-	policy.setMap(old => {
-		old[policy.position[0]][policy.position[1]] = Math.max(maxValue * policy.gama, old[policy.position[0]][policy.position[1]]);
-		return old;
+		return qTable;
 	});
-	
-	policy.setQTable(old => {
-		value = Math.max(maxValue, old[policy.position.join(':')][target.join(':')]);
-		old[policy.position.join(':')][target.join(':')] = value;
-		return old;
-	});
-
-	
-	if (policy.target.join(':') === target.join(':')) {
-		if (policy.hasChanges.current === false) {
-			policy.setConverged(old => old + 1);
-		}
-	}
-}
-
-function checkChanges(policy: Policy, nextAction: Coord, value: number) {
-	const response: boolean = Object.entries(policy.qTable).some(([position, actions]) => {
-		if (position !== policy.target.join(':')) {
-			return Object.entries(actions).some(([action, reward]) => {
-				if (reward === 0) {
-					policy.hasChanges.current = true;
-					return true;
-				}
-				return false;
-			});
-		}
-		return false;
-	});
-
-	const newQTable = Object.assign(policy.qTable);
-	newQTable[policy.position.join(':')][nextAction.join(':')] = value;
-
-	if (response === false && JSON.stringify(policy.qTable) !== JSON.stringify(newQTable)) {
-		console.log("mudou");
-		policy.hasChanges.current = true;
-	}
 }
