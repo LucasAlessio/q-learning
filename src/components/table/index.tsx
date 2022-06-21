@@ -52,7 +52,7 @@ export function QTable() {
 					<tr key={i + '_'}>
 						<Td rowSpan={Object.keys(acoes).length}>{posicao}</Td>
 						<Td>{neighbors.length ? neighbors[0] : null}</Td>
-						<Td>{values.length ? (values[0] / 1 === 0 ? values[0] : values[0].toFixed(4))  : null}</Td>
+						<Td>{values.length ? (values[0] % 1 === 0 ? values[0] : values[0].toFixed(4))  : null}</Td>
 					</tr>
 
 					{neighbors.length > 1 && Object.entries(acoes).map(([acao, recompensa]: [acao: string, recompensa: number], j) => {

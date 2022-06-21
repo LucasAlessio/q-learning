@@ -97,7 +97,7 @@ export function Map() {
 			<Content>
 				<SSlider
 					label="Porcentagem de melhor escolha"
-					defaultValue={values.bestChoicePercentage}
+					value={values.bestChoicePercentage}
 					min={0}
 					max={1}
 					step={0.1}

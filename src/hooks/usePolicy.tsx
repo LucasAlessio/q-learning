@@ -14,6 +14,7 @@ interface Policy {
 	episodes: number,
 	setEpisodes: Dispatch<SetStateAction<number>>,
 	hasChanges: MutableRefObject<boolean>,
+	episodesWithoutChanges: MutableRefObject<number>,
 	start: [number, number],
 	target: [number, number],
 	gama: number,
@@ -26,15 +27,15 @@ interface PolicyProviderProps {
 const gama = 0.9;
 
 const initMap: Action[][] = [
-	[  MP.free,  MP.free,  MP.free,  MP.free, MP.block, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,  MP.block ],
-	[  MP.free, MP.block,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,  MP.block ],
-	[ MP.block,  MP.free, MP.block,  MP.free,  MP.free, MP.free, MP.block, MP.free, MP.block, MP.block,  MP.free,   MP.free ],
-	[  MP.free, MP.block,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free, MP.block,  MP.free,  MP.free,   MP.free ],
+	[  MP.free,  MP.free,  MP.free,  MP.free,  MP.trap, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,   MP.trap ],
+	[  MP.free,  MP.trap,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free,   MP.trap ],
+	[  MP.trap,  MP.free,  MP.trap,  MP.free,  MP.free, MP.free,  MP.trap, MP.free,  MP.trap,  MP.trap,  MP.free,   MP.free ],
+	[  MP.free,  MP.trap,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.trap,  MP.free,  MP.free,   MP.free ],
 	[  MP.free,  MP.free,  MP.free,  MP.free,  MP.free, MP.free,  MP.free, MP.free,  MP.free,  MP.free,  MP.free, MP.target ],
-	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free, MP.block, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.trap, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
 	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
 	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
-	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free, MP.block, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
+	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.trap, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
 	[ MP.blank, MP.blank, MP.blank, MP.blank,  MP.free, MP.free,  MP.free, MP.free, MP.blank, MP.blank, MP.blank,  MP.blank ],
 ];
 
@@ -50,6 +51,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [converged, setConverged] = useState(false);
 	const [episodes, setEpisodes] = useState(0);
 	const hasChanges = useRef(false);
+	const episodesWithoutChanges = useRef(0);
 
 	return <PolicyContext.Provider value={{
 		map,
@@ -63,6 +65,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 		episodes,
 		setEpisodes,
 		hasChanges,
+		episodesWithoutChanges,
 		start,
 		target,
 		gama
@@ -82,28 +85,28 @@ function generateQTable (map: Action[][]): QTable {
 
 	map.map((row, i) => {
 		row.map((_, j) => {
-			if (![MP.block,  MP.blank].includes(map[i][j])) {
+			if (![MP.blank].includes(map[i][j])) {
 				QTable[i + ':' + j] = typeof QTable[i + ':' + j] == 'undefined' ? {} : QTable[i + ':' + j];
 
-				if (i > 0 && map[i - 1][j] >= 0) {
+				if (i > 0 && map[i - 1][j] > MP.blank) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
 						[(i - 1) + ':' + j]: 0,
 					};
 				}
-				if (i < map.length - 1 && map[i + 1][j] >= 0) {
+				if (i < map.length - 1 && map[i + 1][j] > MP.blank) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
 						[(i + 1) + ':' + j]: 0,
 					};
 				}
-				if (j > 0 && map[i][j - 1] >= 0) {
+				if (j > 0 && map[i][j - 1] > MP.blank) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
 						[i + ':' + (j - 1)]: 0,
 					};
 				}
-				if (j < row.length - 1 && map[i][j + 1] >= 0) {
+				if (j < row.length - 1 && map[i][j + 1] > MP.blank) {
 					QTable[i + ':' + j] = {
 						...QTable[i + ':' + j],
 						[i + ':' + (j + 1)]: 0,
@@ -120,7 +123,9 @@ function generateQTable (map: Action[][]): QTable {
 export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentage: number): ReturnType<typeof setTimeout> {
 	return setTimeout(() => {
 		const position = policy.position.join(':');
-		const actions = Object.keys(policy.qTable[position]);
+		const actions = Object.keys(policy.qTable[position]).filter(key => {
+			return policy.qTable[policy.position.join(':')][key] >= 0;
+		});
 		let action: Coord;
 
 		const choice = Math.random() >= (bestChoicePercentage) ? 'random' : 'best';
@@ -129,7 +134,7 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 			let bestActions: { action: string, reward: number }[] = [];
 			
 			Object.entries(policy.qTable[position]).map(([action, reward]) => {
-				if (reward !== 0) {
+				if (reward > 0) {
 					if (bestActions.length === 0) {
 						bestActions.push({
 							action: action,
@@ -167,8 +172,15 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 		
 		
 		if (policy.position.join(',') === policy.target.join(',')) {
-			if (policy.hasChanges.current === false) {
-				policy.setConverged(true);
+			if (policy.hasChanges.current === false && !tableHasEmptyActions(policy)) {
+				if (policy.episodesWithoutChanges.current > 9) {
+					policy.setConverged(true);
+				} else {
+					policy.episodesWithoutChanges.current++;
+				}
+
+
+				console.log(policy.episodesWithoutChanges.current);
 			}
 			if (policy.converged === false) {
 				policy.setEpisodes(episodes => episodes + 1);
@@ -176,8 +188,14 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 			
 			policy.setPosition(policy.start);
 			policy.hasChanges.current = false;
-		}
-		else {
+		} else if (policy.map[policy.position[0]][policy.position[1]] === MP.trap) {
+			if (policy.converged === false) {
+				policy.setEpisodes(episodes => episodes + 1);
+			}
+
+			policy.setPosition(policy.start);
+			updateQTable(policy, action);
+		} else {
 			updateQTable(policy, action);
 			policy.setPosition(action);
 		}
@@ -187,21 +205,30 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 
 function updateQTable(policy: Policy, nextAction: Coord) {
 	const neighbors = policy.qTable[nextAction.join(':')];
+
+	let reward = policy.gama * Math.max(...Object.values(neighbors));
 	
-	let maxValue = policy.gama * Math.max(...Object.values(neighbors));
-	let value = 0;
-	
-	if (policy.target.join(':') === nextAction.join(':')) {
-		maxValue = 100;
+	if (policy.map[nextAction[0]][nextAction[1]] === MP.target) {
+		reward = 100;
+	} else if (policy.map[nextAction[0]][nextAction[1]] === MP.trap) {
+		reward = MP.trap;
 	}
 
 	policy.setMap(map => {
-		map[policy.position[0]][policy.position[1]] = Math.max(maxValue * policy.gama, map[policy.position[0]][policy.position[1]]);
+		if (map[policy.position[0]][policy.position[1]] > MP.trap) {
+			map[policy.position[0]][policy.position[1]] = Math.max(reward * policy.gama, map[policy.position[0]][policy.position[1]]);
+		}
+
 		return map;
 	});
 
+	let value = 0;
 	policy.setQTable(qTable => {
-		value = Math.max(maxValue, qTable[policy.position.join(':')][nextAction.join(':')]);
+		if (reward !== MP.trap) {
+			value = Math.max(reward, qTable[policy.position.join(':')][nextAction.join(':')]);
+		} else {
+			value = reward;
+		}
 		
 		if (value !== qTable[policy.position.join(':')][nextAction.join(':')]) {
 			qTable[policy.position.join(':')][nextAction.join(':')] = value;
@@ -210,4 +237,28 @@ function updateQTable(policy: Policy, nextAction: Coord) {
 
 		return qTable;
 	});
+}
+
+function tableHasEmptyActions(policy: Policy): boolean {
+	let response = false;
+
+	Object.entries(policy.qTable).forEach(([position, actions]) => {
+		const coords = position.split(":").map(value => {
+			return Number(value);
+		}) as Coord;
+
+		if (position !== policy.target.join(':') && policy.map[coords[0]][coords[1]] !== MP.trap) {
+			Object.entries(actions).forEach(([action, reward]) => {
+				const coords = action.split(":").map(value => {
+					return Number(value);
+				}) as Coord;
+
+				if (policy.map[coords[0]][coords[1]] !== MP.trap && !response && reward === 0) {
+					response = true;
+				}
+			});
+		}
+	});
+
+	return response;
 }

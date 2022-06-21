@@ -50,7 +50,7 @@ const Div = styled.div`
 		);
 	`}
 
-	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.block && !dataActive && css`
+	${({dataType, dataActive}: {dataType: Action, dataActive: boolean}) => dataType === MP.trap && !dataActive && css`
 		color: #fff;
 		background: #000;
 	`}

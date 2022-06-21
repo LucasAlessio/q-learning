@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 interface SSliderProps {
 	label: string,
-	defaultValue: number,
+	value: number,
 	min: number,
 	max: number,
 	step: number,
@@ -73,7 +73,7 @@ const StyledSliderContainer = styled.div`
 	padding: 0 11px;
 `;
 
-export function SSlider({label, defaultValue, min, max, step, disabled, onChange, valueLabelFormat}: SSliderProps) {
+export function SSlider({label, value, min, max, step, disabled, onChange, valueLabelFormat}: SSliderProps) {
 	return <>
 		<Typography
 			sx={{
@@ -86,8 +86,9 @@ export function SSlider({label, defaultValue, min, max, step, disabled, onChange
 		</Typography>
 		<StyledSliderContainer>
 			<StyledSlider
+				key={'teste'}
 				aria-label={label}
-				defaultValue={defaultValue}
+				value={value}
 				valueLabelDisplay="auto"
 				step={step}
 				min={min}
