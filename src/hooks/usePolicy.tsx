@@ -15,6 +15,7 @@ interface Policy {
 	setEpisodes: Dispatch<SetStateAction<number>>,
 	hasChanges: MutableRefObject<boolean>,
 	episodesWithoutChanges: MutableRefObject<number>,
+	lastPosition: MutableRefObject<Coord | null>,
 	start: [number, number],
 	target: [number, number],
 	gama: number,
@@ -52,6 +53,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 	const [episodes, setEpisodes] = useState(0);
 	const hasChanges = useRef(false);
 	const episodesWithoutChanges = useRef(0);
+	const lastPosition = useRef(null);
 
 	return <PolicyContext.Provider value={{
 		map,
@@ -66,6 +68,7 @@ export const PolicyProvider = ({ children }: PolicyProviderProps) => {
 		setEpisodes,
 		hasChanges,
 		episodesWithoutChanges,
+		lastPosition,
 		start,
 		target,
 		gama
@@ -178,9 +181,6 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 				} else {
 					policy.episodesWithoutChanges.current++;
 				}
-
-
-				console.log(policy.episodesWithoutChanges.current);
 			}
 			if (policy.converged === false) {
 				policy.setEpisodes(episodes => episodes + 1);
@@ -193,11 +193,14 @@ export function moveAgent(policy: Policy, timelimit: number, bestChoicePercentag
 				policy.setEpisodes(episodes => episodes + 1);
 			}
 
-			policy.setPosition(policy.start);
+			if (policy.lastPosition.current !== null) {
+				policy.setPosition(policy.lastPosition.current);
+			}
 			updateQTable(policy, action);
 		} else {
 			updateQTable(policy, action);
 			policy.setPosition(action);
+			policy.lastPosition.current = policy.position;
 		}
 		
 	}, timelimit);
